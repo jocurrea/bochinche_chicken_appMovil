@@ -1,24 +1,27 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import 'react-native-gesture-handler'; 
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Slot } from 'expo-router';
+import { Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as NavigationBar from 'expo-navigation-bar';
+import React, { useEffect } from 'react';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      // Configuramos la barra del sistema con colores estándar (No transparente)
+      NavigationBar.setBackgroundColorAsync('#f2f2f2'); // Gris estándar
+      NavigationBar.setButtonStyleAsync('dark');
+    }
+  }, []);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <StatusBar style="dark" backgroundColor="#ffffff" translucent={false} />
+        <Slot />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
