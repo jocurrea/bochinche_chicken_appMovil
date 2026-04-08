@@ -178,7 +178,7 @@ export default function HomeScreen() {
           brand: 'Grill',
           category: { name: 'Parrillas' },
           image_url: '' // No usado si proveemos local_image
-          ,local_image: require('@/assets/images/bochinche/parrilla_popular.png')
+          ,local_image: require('../../assets/images/bochinche/parrilla_popular.png')
         },
         {
           id: 'p2',
@@ -188,7 +188,7 @@ export default function HomeScreen() {
           brand: 'Grill',
           category: { name: 'Parrillas' },
           image_url: '',
-          local_image: require('@/assets/images/bochinche/parrilla_clasica.png')
+          local_image: require('../../assets/images/bochinche/parrilla_clasica.png')
         },
         {
           id: 'p3',
@@ -198,7 +198,7 @@ export default function HomeScreen() {
           brand: 'Grill',
           category: { name: 'Parrillas' },
           image_url: '',
-          local_image: require('@/assets/images/bochinche/parrilla_sensacional.png')
+          local_image: require('../../assets/images/bochinche/parrilla_sensacional.png')
         },
         {
           id: 'p4',
@@ -208,7 +208,7 @@ export default function HomeScreen() {
           brand: 'Grill',
           category: { name: 'Parrillas' },
           image_url: '',
-          local_image: require('@/assets/images/bochinche/parrilla_especial.png')
+          local_image: require('../../assets/images/bochinche/parrilla_especial.png')
         }
       ];
 
@@ -220,7 +220,7 @@ export default function HomeScreen() {
           price: '5.99',
           brand: 'Grill',
           category: { name: 'Hamburguesas' },
-          local_image: require('@/assets/images/bochinche/burger_crispy.png')
+          local_image: require('../../assets/images/bochinche/burger_crispy.png')
         },
         {
           id: 'h2',
@@ -229,7 +229,7 @@ export default function HomeScreen() {
           price: '5.99',
           brand: 'Grill',
           category: { name: 'Hamburguesas' },
-          local_image: require('@/assets/images/bochinche/burger_grill.png')
+          local_image: require('../../assets/images/bochinche/burger_grill.png')
         },
         {
           id: 'h3',
@@ -238,7 +238,7 @@ export default function HomeScreen() {
           price: '7.50',
           brand: 'Grill',
           category: { name: 'Hamburguesas' },
-          local_image: require('@/assets/images/bochinche/burger_mixta.png')
+          local_image: require('../../assets/images/bochinche/burger_mixta.png')
         },
         {
           id: 'h4',
@@ -247,7 +247,7 @@ export default function HomeScreen() {
           price: '5.99',
           brand: 'Grill',
           category: { name: 'Hamburguesas' },
-          local_image: require('@/assets/images/bochinche/burger_mini.png')
+          local_image: require('../../assets/images/bochinche/burger_mini.png')
         },
         {
           id: 'h5',
@@ -256,7 +256,7 @@ export default function HomeScreen() {
           price: '7.50',
           brand: 'Grill',
           category: { name: 'Hamburguesas' },
-          local_image: require('@/assets/images/bochinche/burger_ligera.png')
+          local_image: require('../../assets/images/bochinche/burger_ligera.png')
         }
       ];
 
@@ -268,7 +268,7 @@ export default function HomeScreen() {
           price: '3.99',
           brand: 'Grill',
           category: { name: 'Cachapas' },
-          local_image: require('@/assets/images/bochinche/cachapa_cheese.png')
+          local_image: require('../../assets/images/bochinche/cachapa_cheese.png')
         },
         {
           id: 'c2',
@@ -277,7 +277,7 @@ export default function HomeScreen() {
           price: '5.50',
           brand: 'Grill',
           category: { name: 'Cachapas' },
-          local_image: require('@/assets/images/bochinche/cachapa_ham.png')
+          local_image: require('../../assets/images/bochinche/cachapa_ham.png')
         },
         {
           id: 'c3',
@@ -286,7 +286,7 @@ export default function HomeScreen() {
           price: '6.99',
           brand: 'Grill',
           category: { name: 'Cachapas' },
-          local_image: require('@/assets/images/bochinche/cachapa_pork.png')
+          local_image: require('../../assets/images/bochinche/cachapa_pork.png')
         },
         {
           id: 'c4',
@@ -295,7 +295,7 @@ export default function HomeScreen() {
           price: '6.99',
           brand: 'Grill',
           category: { name: 'Cachapas' },
-          local_image: require('@/assets/images/bochinche/cachapa_sirloin.png')
+          local_image: require('../../assets/images/bochinche/cachapa_sirloin.png')
         },
         {
           id: 'c5',
@@ -304,7 +304,7 @@ export default function HomeScreen() {
           price: '6.99',
           brand: 'Grill',
           category: { name: 'Cachapas' },
-          local_image: require('@/assets/images/bochinche/cachapa_crispy.png')
+          local_image: require('../../assets/images/bochinche/cachapa_crispy.png')
         }
       ];
 
@@ -329,11 +329,11 @@ export default function HomeScreen() {
 
         // COCA COLA
         { id: 'b15', name: 'Agua Nevada 600ml', description: 'Coca-Cola', price: '0.99', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1550505393-5c474d28d00d?q=80&w=200' },
-        { id: 'b16', name: 'Chinotto 1L', description: 'Coca-Cola', price: '1.50', category: { name: 'Bebidas' }, local_image: require('@/assets/images/bochinche/drinks_coke.png') },
-        { id: 'b17', name: 'Chinotto 2L', description: 'Coca-Cola', price: '2.50', category: { name: 'Bebidas' }, local_image: require('@/assets/images/bochinche/drinks_coke.png') },
-        { id: 'b18', name: 'Coca Cola 355ml', description: 'Coca-Cola', price: '0.90', category: { name: 'Bebidas' }, local_image: require('@/assets/images/bochinche/drinks_coke.png') },
-        { id: 'b19', name: 'Coca Cola 1L', description: 'Coca-Cola', price: '1.50', category: { name: 'Bebidas' }, local_image: require('@/assets/images/bochinche/drinks_coke.png') },
-        { id: 'b20', name: 'Coca Cola 2L', description: 'Coca-Cola', price: '2.50', category: { name: 'Bebidas' }, local_image: require('@/assets/images/bochinche/drinks_coke.png') },
+        { id: 'b16', name: 'Chinotto 1L', description: 'Coca-Cola', price: '1.50', category: { name: 'Bebidas' }, local_image: require('../../assets/images/bochinche/drinks_coke.png') },
+        { id: 'b17', name: 'Chinotto 2L', description: 'Coca-Cola', price: '2.50', category: { name: 'Bebidas' }, local_image: require('../../assets/images/bochinche/drinks_coke.png') },
+        { id: 'b18', name: 'Coca Cola 355ml', description: 'Coca-Cola', price: '0.90', category: { name: 'Bebidas' }, local_image: require('../../assets/images/bochinche/drinks_coke.png') },
+        { id: 'b19', name: 'Coca Cola 1L', description: 'Coca-Cola', price: '1.50', category: { name: 'Bebidas' }, local_image: require('../../assets/images/bochinche/drinks_coke.png') },
+        { id: 'b20', name: 'Coca Cola 2L', description: 'Coca-Cola', price: '2.50', category: { name: 'Bebidas' }, local_image: require('../../assets/images/bochinche/drinks_coke.png') },
 
         // OTROS
         { id: 'b21', name: 'Jugo Natural', description: 'Bochinche Natural', price: '1.50', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?q=80&w=200' },
