@@ -19,6 +19,7 @@ export default function LoginScreen() {
   const API_URL = 'http://192.168.250.1:8000/api/login';
 
   useEffect(() => {
+    // 1. Verificar si ya hay una sesión activa
     const checkLogin = async () => {
       try {
         const token = await AsyncStorage.getItem('userToken');
@@ -29,7 +30,28 @@ export default function LoginScreen() {
         console.log("Error verificando sesión", e);
       }
     };
+
+    // 2. Cargar datos recordados si existen
+    const loadRememberedData = async () => {
+      try {
+        const savedEmail = await AsyncStorage.getItem('@bochinche_email');
+        const savedPassword = await AsyncStorage.getItem('@bochinche_password');
+        
+        if (savedEmail) {
+          console.log("✅ Datos recordados encontrados:", savedEmail);
+          setEmail(savedEmail);
+          if (savedPassword) setPassword(savedPassword);
+          setRememberMe(true);
+        } else {
+          console.log("ℹ️ No hay datos recordados en este dispositivo.");
+        }
+      } catch (e) {
+        console.log("Error cargando datos recordados", e);
+      }
+    };
+
     checkLogin();
+    loadRememberedData();
   }, []);
 
   const handleLogin = async () => {
@@ -71,8 +93,21 @@ export default function LoginScreen() {
 
       if (response.ok) {
         if (data.token) {
+          // Guardar sesión principal
           await AsyncStorage.setItem('userToken', data.token);
           await AsyncStorage.setItem('userName', data.user.name);
+
+          // LÓGICA RECUÉRDAME: Guardar o limpiar datos
+          if (rememberMe) {
+            console.log("💾 Guardando credenciales para la próxima vez...");
+            await AsyncStorage.setItem('@bochinche_email', email);
+            await AsyncStorage.setItem('@bochinche_password', password);
+          } else {
+            console.log("🧹 Limpiando historial de datos recordados.");
+            await AsyncStorage.removeItem('@bochinche_email');
+            await AsyncStorage.removeItem('@bochinche_password');
+          }
+
           router.replace('/selection'); 
         }
       } else {

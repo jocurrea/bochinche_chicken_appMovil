@@ -1,14 +1,45 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform, DeviceEventEmitter } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
 export default function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [cartCount, setCartCount] = useState(0);
+
+  // Función para cargar la cantidad real del carrito
+  const updateCartCount = async () => {
+    try {
+      const cartData = await AsyncStorage.getItem('bochinche_cart');
+      if (cartData) {
+        const cart = JSON.parse(cartData);
+        const totalItems = cart.reduce((acc: number, item: any) => acc + item.qty, 0);
+        setCartCount(totalItems);
+      } else {
+        setCartCount(0);
+      }
+    } catch (error) {
+      console.error("Error al cargar contador:", error);
+      setCartCount(0);
+    }
+  };
+
+  useEffect(() => {
+    // Carga inicial
+    updateCartCount();
+
+    // Escuchar actualizaciones dinámicas
+    const subscription = DeviceEventEmitter.addListener('cartUpdated', updateCartCount);
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   return (
     <View style={[styles.navContainer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
@@ -59,9 +90,11 @@ export default function CustomTabBar({ state, descriptors, navigation }: any) {
         onPress={() => router.push('/cart')}
       >
         <Ionicons name="cart" size={30} color="white" />
-        <View style={styles.fabBadge}>
-          <Text style={styles.fabBadgeText}>5</Text>
-        </View>
+        {cartCount > 0 && (
+          <View style={styles.fabBadge}>
+            <Text style={styles.fabBadgeText}>{cartCount}</Text>
+          </View>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -130,6 +163,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'white',
     zIndex: 1000,
+    paddingHorizontal: 4,
   },
   fabBadgeText: {
     color: 'white',

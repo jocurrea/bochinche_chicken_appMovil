@@ -209,7 +209,12 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.logoutBtn} onPress={async () => { await AsyncStorage.clear(); router.replace('/'); }}>
+          <TouchableOpacity style={styles.logoutBtn} onPress={async () => { 
+            // NO USAR .clear() porque borra el "Recuérdame"
+            await AsyncStorage.removeItem('userToken');
+            await AsyncStorage.removeItem('userName');
+            router.replace('/'); 
+          }}>
             <Text style={styles.logoutText}>Cerrar Sesión</Text>
             <Ionicons name="log-out-outline" size={20} color="#f97316" />
           </TouchableOpacity>

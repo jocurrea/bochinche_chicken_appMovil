@@ -13,7 +13,7 @@ const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width / 2) - 25;
 
 const CHICKEN_CATS = ['Arma tu Combo', 'Combos de Alitas', 'Muslos o Cuadril', 'Tender', 'BBQ', 'Patacon', 'Salchipapas', 'Bebidas'];
-const GRILL_CATS = ['Todo', 'Parrillas', 'Burgers', 'Cachapas', 'Bebidas'];
+const GRILL_CATS = ['Todo', 'Parrillas', 'Hamburguesas', 'Cachapas', 'Bebidas'];
 
 const SectionBanner = memo(({ title }: { title: string }) => {
   return (
@@ -88,25 +88,40 @@ export default function HomeScreen() {
 
   // Sincronizar brandParam con el estado local y Storage
   useEffect(() => {
-    if (brandParam) {
-      setBrand(brandParam);
-      AsyncStorage.setItem('lastBrand', brandParam as string);
-      // Reset category if brand changes
-      setSelectedCategory(brandParam === 'chicken' ? 'Arma tu Combo' : 'Todo');
-    } else {
-      // Si no hay param, intentar recuperar del storage
-      const recoverBrand = async () => {
+    const syncState = async () => {
+      if (brandParam) {
+        setBrand(brandParam);
+        await AsyncStorage.setItem('lastBrand', brandParam as string);
+        
+        // Al cambiar de marca, resetear categoría a 'Todo' o 'Arma tu Combo'
+        const defaultCat = brandParam === 'chicken' ? 'Arma tu Combo' : 'Todo';
+        setSelectedCategory(defaultCat);
+        await AsyncStorage.setItem('lastCategory', defaultCat);
+      } else {
         const last = await AsyncStorage.getItem('lastBrand');
+        const lastCat = await AsyncStorage.getItem('lastCategory');
+        
         if (last) {
           setBrand(last);
-          setSelectedCategory(last === 'chicken' ? 'Arma tu Combo' : 'Todo');
+          if (lastCat) {
+            setSelectedCategory(lastCat);
+          } else {
+            setSelectedCategory(last === 'chicken' ? 'Arma tu Combo' : 'Todo');
+          }
         } else {
-          setBrand('chicken'); // Default final
+          setBrand('chicken');
+          setSelectedCategory('Arma tu Combo');
         }
-      };
-      recoverBrand();
-    }
+      }
+    };
+    syncState();
   }, [brandParam]);
+
+  // Guardar categoría cuando el usuario la cambia manualmente
+  const handleCategorySelect = async (cat: string) => {
+    setSelectedCategory(cat);
+    await AsyncStorage.setItem('lastCategory', cat);
+  };
 
   const [userName, setUserName] = useState('Usuario'); 
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
@@ -151,8 +166,185 @@ export default function HomeScreen() {
     try {
       const response = await fetch(API_URL);
       const json = await response.json();
-      const products = json.data || json;
-      setData(products);
+      const apiProducts = json.data || json;
+
+      // SIMULACIÓN DE DATOS SOLICITADOS (4 PARRILLAS)
+      const nuevasParrillas = [
+        {
+          id: 'p1',
+          name: 'Parrilla Popular',
+          description: 'Carne, pollo, ensalada + contorno 150grs',
+          price: '4.99',
+          brand: 'Grill',
+          category: { name: 'Parrillas' },
+          image_url: '' // No usado si proveemos local_image
+          ,local_image: require('@/assets/images/bochinche/parrilla_popular.png')
+        },
+        {
+          id: 'p2',
+          name: 'Parrilla Clasica',
+          description: 'Carne, pollo, ensalada + contorno 300grs',
+          price: '8.99',
+          brand: 'Grill',
+          category: { name: 'Parrillas' },
+          image_url: '',
+          local_image: require('@/assets/images/bochinche/parrilla_clasica.png')
+        },
+        {
+          id: 'p3',
+          name: 'Parrilla Sensacional',
+          description: 'Carne, pollo, chorizo, contorno 450grs + ensalada',
+          price: '13.99',
+          brand: 'Grill',
+          category: { name: 'Parrillas' },
+          image_url: '',
+          local_image: require('@/assets/images/bochinche/parrilla_sensacional.png')
+        },
+        {
+          id: 'p4',
+          name: 'Parrilla Especial',
+          description: 'Carne, pollo, chorizo, contorno 600grs + ensalada',
+          price: '17.99',
+          brand: 'Grill',
+          category: { name: 'Parrillas' },
+          image_url: '',
+          local_image: require('@/assets/images/bochinche/parrilla_especial.png')
+        }
+      ];
+
+      const nuevasHamburguesas = [
+        {
+          id: 'h1',
+          name: 'Hamburguesa Crispy',
+          description: 'Milanesa crispy, lechuga, tomate, pepinillos, papas, queso amarillo, cebolla crispy o caramelizada',
+          price: '5.99',
+          brand: 'Grill',
+          category: { name: 'Hamburguesas' },
+          local_image: require('@/assets/images/bochinche/burger_crispy.png')
+        },
+        {
+          id: 'h2',
+          name: 'Hamburguesa Grill',
+          description: 'Carne, lechuga, tomate, pepinillos, papas, queso amarillo, cebolla crispy o caramelizada',
+          price: '5.99',
+          brand: 'Grill',
+          category: { name: 'Hamburguesas' },
+          local_image: require('@/assets/images/bochinche/burger_grill.png')
+        },
+        {
+          id: 'h3',
+          name: 'Hamburguesa Mixta',
+          description: 'Carne, milanesa crispy o plancha, lechuga, tomate, pepinillos, papas, queso amarillo, cebolla crispy o caramelizada',
+          price: '7.50',
+          brand: 'Grill',
+          category: { name: 'Hamburguesas' },
+          local_image: require('@/assets/images/bochinche/burger_mixta.png')
+        },
+        {
+          id: 'h4',
+          name: 'Hamburguesa Mini',
+          description: '4 Mini hamburguesas + papas fritas + salsas',
+          price: '5.99',
+          brand: 'Grill',
+          category: { name: 'Hamburguesas' },
+          local_image: require('@/assets/images/bochinche/burger_mini.png')
+        },
+        {
+          id: 'h5',
+          name: 'Hamburguesa Ligera',
+          description: '1 Proteína (carne/pollo), pan árabe, lechuga, tomate, cebolla crispy o caramelizada, pepinillo, queso amarillo y jamón',
+          price: '7.50',
+          brand: 'Grill',
+          category: { name: 'Hamburguesas' },
+          local_image: require('@/assets/images/bochinche/burger_ligera.png')
+        }
+      ];
+
+      const nuevasCachapas = [
+        {
+          id: 'c1',
+          name: 'Cachapa La Cheese',
+          description: 'Queso de mano',
+          price: '3.99',
+          brand: 'Grill',
+          category: { name: 'Cachapas' },
+          local_image: require('@/assets/images/bochinche/cachapa_cheese.png')
+        },
+        {
+          id: 'c2',
+          name: 'Cachapa Cheese Ham',
+          description: 'Jamón y queso de mano',
+          price: '5.50',
+          brand: 'Grill',
+          category: { name: 'Cachapas' },
+          local_image: require('@/assets/images/bochinche/cachapa_ham.png')
+        },
+        {
+          id: 'c3',
+          name: 'Cachapa Pork Cheese',
+          description: 'Carne de cerdo y queso de mano',
+          price: '6.99',
+          brand: 'Grill',
+          category: { name: 'Cachapas' },
+          local_image: require('@/assets/images/bochinche/cachapa_pork.png')
+        },
+        {
+          id: 'c4',
+          name: 'Cachapa Sirloin Cheese',
+          description: 'Carne de solomo y queso de mano',
+          price: '6.99',
+          brand: 'Grill',
+          category: { name: 'Cachapas' },
+          local_image: require('@/assets/images/bochinche/cachapa_sirloin.png')
+        },
+        {
+          id: 'c5',
+          name: 'Cachapa Cheese Crispy',
+          description: 'Milanesa crispy y queso de mano',
+          price: '6.99',
+          brand: 'Grill',
+          category: { name: 'Cachapas' },
+          local_image: require('@/assets/images/bochinche/cachapa_crispy.png')
+        }
+      ];
+
+      const catalogBebidas = [
+        // POLAR
+        { id: 'b1', name: 'Agua Minalba 600ml', description: 'Empresas Polar', price: '1.20', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1560023907-5f339617ea30?q=80&w=200' },
+        { id: 'b2', name: 'Malta Polar 250ml', description: 'Empresas Polar', price: '0.80', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1634645228551-7f8a7e08967b?q=80&w=200' },
+        { id: 'b3', name: 'Jugo Yukeri', description: 'Empresas Polar', price: '1.50', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?q=80&w=200' },
+        { id: 'b4', name: 'Te Lipton', description: 'Empresas Polar', price: '2.50', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?q=80&w=200' },
+        { id: 'b5', name: 'Gatorade', description: 'Empresas Polar', price: '2.50', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1622543953495-a13efb821c7a?q=80&w=200' },
+        { id: 'b6', name: 'Refresco Botella 355ml', description: 'Empresas Polar', price: '0.99', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=200' },
+        { id: 'b7', name: 'Refresco Polar 1L', description: 'Empresas Polar', price: '1.80', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=200' },
+        { id: 'b8', name: 'Refresco Polar 2L', description: 'Empresas Polar', price: '2.99', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=200' },
+        
+        // GLUP
+        { id: 'b9', name: 'Agua Glup 600ml', description: 'Marca Glup!', price: '0.99', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1550505393-5c474d28d00d?q=80&w=200' },
+        { id: 'b10', name: 'Refresco Glup 400ml', description: 'Marca Glup!', price: '0.80', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=200' },
+        { id: 'b11', name: 'Refresco Glup 1L', description: 'Marca Glup!', price: '1.50', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=200' },
+        { id: 'b12', name: 'Refresco Glup 2L', description: 'Marca Glup!', price: '2.50', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=200' },
+        { id: 'b13', name: 'Tenta Té 500ml', description: 'Marca Glup!', price: '1.99', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?q=80&w=200' },
+        { id: 'b14', name: 'Tenta Té 1L', description: 'Marca Glup!', price: '3.50', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?q=80&w=200' },
+
+        // COCA COLA
+        { id: 'b15', name: 'Agua Nevada 600ml', description: 'Coca-Cola', price: '0.99', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1550505393-5c474d28d00d?q=80&w=200' },
+        { id: 'b16', name: 'Chinotto 1L', description: 'Coca-Cola', price: '1.50', category: { name: 'Bebidas' }, local_image: require('@/assets/images/bochinche/drinks_coke.png') },
+        { id: 'b17', name: 'Chinotto 2L', description: 'Coca-Cola', price: '2.50', category: { name: 'Bebidas' }, local_image: require('@/assets/images/bochinche/drinks_coke.png') },
+        { id: 'b18', name: 'Coca Cola 355ml', description: 'Coca-Cola', price: '0.90', category: { name: 'Bebidas' }, local_image: require('@/assets/images/bochinche/drinks_coke.png') },
+        { id: 'b19', name: 'Coca Cola 1L', description: 'Coca-Cola', price: '1.50', category: { name: 'Bebidas' }, local_image: require('@/assets/images/bochinche/drinks_coke.png') },
+        { id: 'b20', name: 'Coca Cola 2L', description: 'Coca-Cola', price: '2.50', category: { name: 'Bebidas' }, local_image: require('@/assets/images/bochinche/drinks_coke.png') },
+
+        // OTROS
+        { id: 'b21', name: 'Jugo Natural', description: 'Bochinche Natural', price: '1.50', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?q=80&w=200' },
+        { id: 'b22', name: 'Aguas Saborizadas', description: 'Bochinche Natural', price: '0.99', category: { name: 'Bebidas' }, image_url: 'https://images.unsplash.com/photo-1550505393-5c474d28d00d?q=80&w=200' },
+      ];
+
+      // DUPLICAMOS LAS BEBIDAS PARA AMBAS MARCAS PARA QUE SIEMPRE APAREZCAN
+      const bebidasChicken = catalogBebidas.map(b => ({ ...b, id: 'ch_'+b.id, brand: 'Chicken' }));
+      const bebidasGrill = catalogBebidas.map(b => ({ ...b, id: 'gr_'+b.id, brand: 'Grill' }));
+
+      setData([...nuevasCachapas, ...nuevasHamburguesas, ...nuevasParrillas, ...bebidasChicken, ...bebidasGrill, ...apiProducts]);
     } catch (error) {
       console.error("Error cargando productos:", error);
     } finally {
@@ -169,7 +361,7 @@ export default function HomeScreen() {
     >
       <View style={styles.imageWrapper}>
         <Image 
-          source={{ uri: item.image_url || 'https://via.placeholder.com/150' }} 
+          source={item.local_image ? item.local_image : { uri: item.image_url || 'https://via.placeholder.com/150' }} 
           style={styles.productImage} 
         />
         <TouchableOpacity style={styles.heartIcon}>
@@ -198,7 +390,11 @@ export default function HomeScreen() {
         const itemCat = item.category?.name || "";
         isCategoryMatch = (itemCat.trim().toLowerCase() === selectedCategory.trim().toLowerCase());
       }
-      return matchesSearch && isBrandMatch && isCategoryMatch;
+      // Ocultar productos de envase manuales (ahora son automáticos)
+      const name = item.name?.toLowerCase() || "";
+      const isManualPackaging = name.includes('llevalo') || name.includes('envase') || name.includes('bandeja');
+      
+      return matchesSearch && isBrandMatch && isCategoryMatch && !isManualPackaging;
     });
   }, [data, searchText, brand, selectedCategory]);
 
@@ -259,15 +455,18 @@ export default function HomeScreen() {
             onChangeText={setSearchText}
           />
         </View>
-        <TouchableOpacity style={styles.filterBtn}>
-          <Ionicons name="options" size={20} color="white" />
+        <TouchableOpacity 
+          style={styles.filterBtn}
+          onPress={() => router.push('/rewards')}
+        >
+          <Ionicons name="gift-outline" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
       <CategoriesCarousel 
         categories={categories} 
         selectedCategory={selectedCategory} 
-        onSelect={setSelectedCategory}
+        onSelect={handleCategorySelect}
       />
 
       <View style={styles.sectionHeader}>

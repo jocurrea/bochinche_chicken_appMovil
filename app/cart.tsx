@@ -1,76 +1,92 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, Text, Image, ScrollView, TouchableOpacity, 
-  StatusBar, Platform, StyleSheet 
+  StatusBar, Platform, StyleSheet, Modal, FlatList, DeviceEventEmitter
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const ZONAS_DELIVERY = [
+  { id: '1', name: 'Santa Teresa', price: 2 },
+  { id: '2', name: 'Palmar', price: 4 },
+  { id: '3', name: 'Tomuso', price: 4 },
+  { id: '4', name: 'Cartanal', price: 4 },
+  { id: '5', name: 'El alto', price: 4 },
+  { id: '6', name: 'La tortuga', price: 3 },
+  { id: '7', name: 'Mopia', price: 4 },
+  { id: '8', name: 'Lozada', price: 3 },
+  { id: '9', name: 'Yare', price: 6 },
+];
+
+const IVA_TASA = 0.16;
+const COSTO_ENVASE = 0.20;
 
 export default function CartScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
-  // Datos del Carrito (Pedido Mixto)
-  const [items, setItems] = useState([
-    { 
-      id: '1', 
-      name: 'Combo Bam Bam', 
-      desc: '1 pieza de muslo, papas y ensalada', 
-      price: 2.99, 
-      qty: 2, 
-      brand: 'Chicken',
-      color: '#f97316',
-      image: 'https://images.unsplash.com/photo-1562967914-608f82629710?q=80&w=200&auto=format&fit=crop'
-    },
-    { 
-      id: '2', 
-      name: 'Parrilla Popular', 
-      desc: 'Carne, pollo, ensalada + contorno', 
-      price: 4.99, 
-      qty: 1, 
-      brand: 'Grill',
-      color: '#38241b',
-      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=200&auto=format&fit=crop'
-    },
-    { 
-      id: '3', 
-      name: 'Cachapa La Cheese', 
-      desc: 'Queso de mano', 
-      price: 3.99, 
-      qty: 1, 
-      brand: 'Grill',
-      color: '#38241b',
-      image: 'https://images.unsplash.com/photo-1626202340516-646e2730303b?q=80&w=200&auto=format&fit=crop'
-    },
-    { 
-      id: '4', 
-      name: 'Refresco 2L', 
-      desc: 'Bebida gaseosa', 
-      price: 2.99, 
-      qty: 1, 
-      brand: 'Tomate Algo',
-      color: '#64748b',
-      image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=200&auto=format&fit=crop'
-    },
-  ]);
+  // Datos del Carrito (Dinámicos)
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  // Cargar carrito desde AsyncStorage
+  const loadCart = async () => {
+    try {
+      const cartData = await AsyncStorage.getItem('bochinche_cart');
+      if (cartData) {
+        setItems(JSON.parse(cartData));
+      }
+    } catch (error) {
+      console.error("Error cargando el carrito:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Recargar cada vez que la pantalla gana foco
+  React.useEffect(() => {
+    loadCart();
+  }, []);
+
+  // Función para guardar cambios en el storage
+  const saveCart = async (newItems: any[]) => {
+    try {
+      await AsyncStorage.setItem('bochinche_cart', JSON.stringify(newItems));
+      // Notificar a la barra de menú para que actualice el contador
+      DeviceEventEmitter.emit('cartUpdated');
+    } catch (error) {
+      console.error("Error guardando el carrito:", error);
+    }
+  };
+
+  const [orderType, setOrderType] = useState('local'); // 'local' o 'delivery'
   const [paymentMethod, setPaymentMethod] = useState('pago_movil');
+  const [selectedZone, setSelectedZone] = useState(ZONAS_DELIVERY[0]);
+  const [showZoneModal, setShowZoneModal] = useState(false);
 
   // Lógica de cantidades
   const updateQty = (id: string, delta: number) => {
-    setItems(prev => prev.map(item => 
+    const newItems = items.map(item => 
       item.id === id ? { ...item, qty: Math.max(1, item.qty + delta) } : item
-    ));
+    );
+    setItems(newItems);
+    saveCart(newItems);
   };
 
   const removeItem = (id: string) => {
-    setItems(prev => prev.filter(item => item.id !== id));
+    const newItems = items.filter(item => item.id !== id);
+    setItems(newItems);
+    saveCart(newItems);
   };
 
-  const subtotal = items.reduce((acc, item) => acc + (item.price * item.qty), 0);
-  const delivery = 2.00;
-  const total = subtotal + delivery;
+  // Cálculos detallados
+  const subtotalProducts = items.reduce((acc, item) => acc + (item.price * item.qty), 0);
+  const ivaTotal = subtotalProducts * IVA_TASA;
+  const packagingFee = orderType === 'delivery' ? COSTO_ENVASE : 0;
+  const shippingCost = orderType === 'delivery' ? selectedZone.price : 0;
+  const grandTotal = subtotalProducts + ivaTotal + packagingFee + shippingCost;
 
   return (
     <View style={styles.container}>
@@ -87,64 +103,135 @@ export default function CartScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
+        {/* SELECTOR DE TIPO DE PEDIDO */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>¿Dónde vas a comer?</Text>
+          <View style={styles.orderTypeContainer}>
+            <TouchableOpacity 
+              style={[styles.typeBtn, orderType === 'local' && styles.typeBtnActive]} 
+              onPress={() => setOrderType('local')}
+            >
+              <Ionicons 
+                name="restaurant-outline" 
+                size={22} 
+                color={orderType === 'local' ? 'white' : '#64748b'} 
+              />
+              <Text style={[styles.typeBtnText, orderType === 'local' && styles.typeBtnTextActive]}>
+                Comer en el local
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.typeBtn, orderType === 'delivery' && styles.typeBtnActive]} 
+              onPress={() => setOrderType('delivery')}
+            >
+              <Ionicons 
+                name="bicycle-outline" 
+                size={22} 
+                color={orderType === 'delivery' ? 'white' : '#64748b'} 
+              />
+              <Text style={[styles.typeBtnText, orderType === 'delivery' && styles.typeBtnTextActive]}>
+                Para llevar / Delivery
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* LISTA DE PRODUCTOS */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Resumen del Pedido</Text>
-          {items.map((item) => (
-            <View key={item.id} style={styles.cartCard}>
-              <Image source={{ uri: item.image }} style={styles.productImage} />
-              
-              <View style={styles.cardInfo}>
-                <View style={styles.cardHeader}>
-                  <View style={[styles.brandBadge, { backgroundColor: item.color }]}>
-                    <Text style={styles.brandText}>{item.brand}</Text>
-                  </View>
-                  <TouchableOpacity onPress={() => removeItem(item.id)}>
-                    <Ionicons name="trash-outline" size={20} color="#f97316" />
-                  </TouchableOpacity>
-                </View>
-
-                <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.productDesc} numberOfLines={1}>{item.desc}</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Resumen del Pedido</Text>
+            <Text style={styles.itemsCount}>{items.length} productos</Text>
+          </View>
+          
+          {items.length === 0 && !loading ? (
+            <View style={styles.emptyCart}>
+              <Ionicons name="cart-outline" size={60} color="#cbd5e1" />
+              <Text style={styles.emptyText}>Tu carrito está vacío</Text>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/home')}>
+                <Text style={styles.browseText}>Ver menú</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            items.map((item) => (
+              <View key={item.id} style={styles.cartCard}>
+                <Image 
+                  source={typeof item.image === 'number' || !isNaN(parseInt(item.image)) 
+                    ? (typeof item.image === 'number' ? item.image : parseInt(item.image)) 
+                    : { uri: item.image }} 
+                  style={styles.productImage} 
+                />
                 
-                <View style={styles.cardFooter}>
-                  <Text style={styles.productPrice}>${(item.price * item.qty).toFixed(2)}</Text>
+                <View style={styles.cardInfo}>
+                  <View style={styles.cardHeader}>
+                    <View style={[styles.brandBadge, { backgroundColor: item.color }]}>
+                      <Text style={styles.brandText}>{item.brand}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => removeItem(item.id)}>
+                      <Ionicons name="trash-outline" size={20} color="#f97316" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={styles.productName}>{item.name}</Text>
+                  <Text style={styles.productDesc} numberOfLines={1}>{item.desc || 'Preparado al momento'}</Text>
                   
-                  <View style={styles.qtyContainer}>
-                    <TouchableOpacity 
-                      onPress={() => updateQty(item.id, -1)} 
-                      style={styles.qtyBtn}
-                    >
-                      <Ionicons name="remove" size={16} color="#333" />
-                    </TouchableOpacity>
-                    <Text style={styles.qtyText}>{item.qty}</Text>
-                    <TouchableOpacity 
-                      onPress={() => updateQty(item.id, 1)} 
-                      style={[styles.qtyBtn, styles.qtyBtnPlus]}
-                    >
-                      <Ionicons name="add" size={16} color="white" />
-                    </TouchableOpacity>
+                  <View style={styles.cardFooter}>
+                    <Text style={styles.productPrice}>${(item.price * item.qty).toFixed(2)}</Text>
+                    
+                    <View style={styles.qtyContainer}>
+                      <TouchableOpacity 
+                        onPress={() => updateQty(item.id, -1)} 
+                        style={styles.qtyBtn}
+                      >
+                        <Ionicons name="remove" size={16} color="#333" />
+                      </TouchableOpacity>
+                      <Text style={styles.qtyText}>{item.qty}</Text>
+                      <TouchableOpacity 
+                        onPress={() => updateQty(item.id, 1)} 
+                        style={[styles.qtyBtn, styles.qtyBtnPlus]}
+                      >
+                        <Ionicons name="add" size={16} color="white" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               </View>
-            </View>
-          ))}
+            ))
+          )}
         </View>
 
-        {/* DETALLES DE ENTREGA */}
+        {/* DETALLES DE ENTREGA / ZONAS */}
         <View style={styles.section}>
-          <View style={styles.deliveryCard}>
-            <View style={styles.deliveryIconBox}>
-              <Ionicons name="location" size={24} color="#f97316" />
-            </View>
-            <View style={styles.deliveryInfo}>
-              <Text style={styles.deliveryLabel}>Dirección de Entrega</Text>
-              <Text style={styles.deliveryAddress}>Santa Teresa del Tuy, Centro</Text>
-            </View>
-            <TouchableOpacity>
-              <Text style={styles.editBtnText}>Editar</Text>
+          {orderType === 'delivery' ? (
+            <TouchableOpacity 
+              style={styles.deliveryCard}
+              onPress={() => setShowZoneModal(true)}
+            >
+              <View style={styles.deliveryIconBox}>
+                <Ionicons name="map-outline" size={24} color="#f97316" />
+              </View>
+              <View style={styles.deliveryInfo}>
+                <Text style={styles.deliveryLabel}>Zona de Entrega</Text>
+                <Text style={styles.deliveryAddress}>
+                  {selectedZone.name} - ${selectedZone.price.toFixed(2)}
+                </Text>
+              </View>
+              <View style={styles.editBtnBox}>
+                <Text style={styles.editBtnText}>Cambiar</Text>
+                <Ionicons name="chevron-forward" size={16} color="#f97316" />
+              </View>
             </TouchableOpacity>
-          </View>
+          ) : (
+            <View style={[styles.deliveryCard, { opacity: 0.6 }]}>
+              <View style={[styles.deliveryIconBox, { backgroundColor: '#f1f5f9' }]}>
+                <Ionicons name="restaurant-outline" size={24} color="#64748b" />
+              </View>
+              <View style={styles.deliveryInfo}>
+                <Text style={styles.deliveryLabel}>Consumo en el Local</Text>
+                <Text style={styles.deliveryAddress}>Bochinche Principal</Text>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* MÉTODOS DE PAGO */}
@@ -188,30 +275,103 @@ export default function CartScreen() {
           </View>
         </View>
 
-        {/* RESUMEN DE PAGO */}
+        {/* RESUMEN DE PAGO (RECIBO PREMIUM) */}
         <View style={[styles.section, styles.summarySection]}>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
+            <Text style={styles.summaryLabel}>Subtotal Productos</Text>
+            <Text style={styles.summaryValue}>${subtotalProducts.toFixed(2)}</Text>
           </View>
+
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Delivery</Text>
-            <Text style={styles.summaryValue}>${delivery.toFixed(2)}</Text>
+            <Text style={styles.summaryLabel}>IVA (16% de Ley)</Text>
+            <Text style={styles.summaryValue}>${ivaTotal.toFixed(2)}</Text>
           </View>
+          
+          {orderType === 'delivery' && (
+            <>
+              <View style={styles.summaryRow}>
+                <View style={styles.labelWithBadge}>
+                  <Text style={styles.summaryLabel}>Envases</Text>
+                  <View style={styles.autoBadge}>
+                    <Text style={styles.autoBadgeText}>AUTO</Text>
+                  </View>
+                </View>
+                <Text style={styles.summaryValue}>${packagingFee.toFixed(2)}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Costo de Envío ({selectedZone.name})</Text>
+                <Text style={styles.summaryValue}>${shippingCost.toFixed(2)}</Text>
+              </View>
+            </>
+          )}
+
           <View style={[styles.summaryRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Total a Pagar</Text>
-            <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
+            <Text style={styles.totalLabel}>TOTAL FINAL</Text>
+            <Text style={styles.totalValue}>${grandTotal.toFixed(2)}</Text>
           </View>
         </View>
+
+        {/* ESPACIADOR FINAL */}
+        <View style={{ height: 40 }} />
 
       </ScrollView>
 
       {/* CTA BOTÓN FIJO */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         <TouchableOpacity style={styles.confirmBtn} activeOpacity={0.8}>
-          <Text style={styles.confirmBtnText}>Confirmar Pedido - ${total.toFixed(2)}</Text>
+          <Text style={styles.confirmBtnText}>Confirmar Pedido - ${grandTotal.toFixed(2)}</Text>
         </TouchableOpacity>
       </View>
+
+      {/* MODAL SELECCION DE ZONA */}
+      <Modal
+        visible={showZoneModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowZoneModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecciona Zona de Envío</Text>
+              <TouchableOpacity onPress={() => setShowZoneModal(false)}>
+                <Ionicons name="close-circle" size={28} color="#94a3b8" />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={ZONAS_DELIVERY}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.modalList}
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  style={[
+                    styles.zoneItem,
+                    selectedZone.id === item.id && styles.zoneItemActive
+                  ]}
+                  onPress={() => {
+                    setSelectedZone(item);
+                    setShowZoneModal(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.zoneName,
+                    selectedZone.id === item.id && styles.zoneNameActive
+                  ]}>
+                    {item.name}
+                  </Text>
+                  <Text style={[
+                    styles.zonePrice,
+                    selectedZone.id === item.id && styles.zonePriceActive
+                  ]}>
+                    ${item.price.toFixed(2)}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
 
     </View>
   );
@@ -247,7 +407,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 120,
+    paddingBottom: 20, 
   },
   section: {
     marginTop: 24,
@@ -275,6 +435,7 @@ const styles = StyleSheet.create({
     height: 90,
     borderRadius: 20,
     backgroundColor: '#f1f5f9',
+    resizeMode: 'cover',
   },
   cardInfo: {
     flex: 1,
@@ -382,6 +543,32 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     marginTop: 2,
   },
+  editBtnBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  emptyCart: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    backgroundColor: 'white',
+    borderRadius: 30,
+    marginTop: 10,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#94a3b8',
+    marginTop: 15,
+  },
+  browseText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#f97316',
+    marginTop: 10,
+    textDecorationLine: 'underline',
+  },
   editBtnText: {
     fontSize: 14,
     fontWeight: '700',
@@ -443,6 +630,7 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
   summaryLabel: {
@@ -455,6 +643,69 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0f172a',
   },
+  labelWithBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  autoBadge: {
+    backgroundColor: '#fee2e2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  autoBadgeText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: '#ef4444',
+  },
+  orderTypeContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#f1f5f9',
+    padding: 6,
+    borderRadius: 20,
+    gap: 8,
+  },
+  typeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 16,
+    gap: 8,
+  },
+  typeBtnActive: {
+    backgroundColor: '#f97316',
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  typeBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  typeBtnTextActive: {
+    color: 'white',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  itemsCount: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94a3b8',
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
   totalRow: {
     marginTop: 8,
     paddingTop: 16,
@@ -463,40 +714,97 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontWeight: '900',
+    color: '#38241b', // Marrón oscuro premium
+    letterSpacing: 0.5,
   },
   totalValue: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
-    color: '#f97316',
+    color: '#f97316', // Naranja vibrante
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(248, 250, 252, 0.95)',
-    paddingHorizontal: 20,
-    paddingTop: 12,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 25,
+    paddingTop: 15,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
   },
   confirmBtn: {
-    backgroundColor: '#f97316',
+    backgroundColor: '#38241b', // Marrón oscuro para el botón
     height: 64,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#f97316',
+    shadowColor: '#38241b',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 6,
   },
   confirmBtnText: {
     color: 'white',
     fontSize: 17,
-    fontWeight: 'bold',
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  // ESTILOS MODAL Y ZONAS
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 35,
+    borderTopRightRadius: 35,
+    maxHeight: '70%',
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 25,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  modalTitle: {
+    fontSize: 19,
+    fontWeight: '900',
+    color: '#0f172a',
+  },
+  modalList: {
+    padding: 15,
+  },
+  zoneItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 18,
+    marginBottom: 10,
+    backgroundColor: '#f8fafc',
+  },
+  zoneItemActive: {
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#f97316',
+  },
+  zoneName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  zoneNameActive: {
+    color: '#f97316',
+  },
+  zonePrice: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#64748b',
+  },
+  zonePriceActive: {
+    color: '#f97316',
   },
 });
