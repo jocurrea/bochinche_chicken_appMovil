@@ -10,8 +10,8 @@ import React, { useEffect } from 'react';
 export default function RootLayout() {
   useEffect(() => {
     if (Platform.OS === 'android') {
-      // Configuramos la barra del sistema con colores estándar (No transparente)
-      NavigationBar.setBackgroundColorAsync('#f2f2f2'); // Gris estándar
+      // Con edge-to-edge habilitado en app.json, la barra es transparente por defecto.
+      // Solo configuramos el estilo de los botones (oscuros) para que contrasten con fondos claros.
       NavigationBar.setButtonStyleAsync('dark');
     }
   }, []);

@@ -22,10 +22,13 @@ export default function LoginScreen() {
     // 1. Verificar si ya hay una sesión activa
     const checkLogin = async () => {
       try {
+        // Deshabilitamos el inicio automático por solicitud del usuario
+        /*
         const token = await AsyncStorage.getItem('userToken');
         if (token) {
           router.replace('/selection'); 
         }
+        */
       } catch (e) {
         console.log("Error verificando sesión", e);
       }
@@ -114,7 +117,7 @@ export default function LoginScreen() {
         Alert.alert("Error de Acceso", data.message || "Credenciales incorrectas");
       }
 
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'AbortError') {
         Alert.alert("Timeout", "El servidor tardó demasiado en responder. ¿La IP " + API_URL + " es correcta?");
       } else {
